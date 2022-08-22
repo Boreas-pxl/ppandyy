@@ -9,7 +9,8 @@ import random
 today = datetime.now()
 start_date = os.environ['START_DATE']
 city = os.environ['CITY']
-birthday = os.environ['BIRTHDAY']
+yy_birthday = os.environ['YY_BIRTHDAY']
+pp_birthday = os.environ['PP_BIRTHDAY']
 
 app_id = os.environ["APP_ID"]
 app_secret = os.environ["APP_SECRET"]
@@ -22,17 +23,30 @@ def get_weather():
   url = "http://autodev.openspeech.cn/csp/api/v2.1/weather?openId=aiuicus&clientType=android&sign=android&city=" + city
   res = requests.get(url).json()
   weather = res['data']['list'][0]
-  return weather['weather'], math.floor(weather['temp'])
+  wea = weather['weather']
+  wind = weather['wind']
+  low_temp = math.floor(weather['low'])
+  high_temp = math.floor(weather['high'])
+  air = weather['airQuality']
+  return wea, wind, low_temp, high_temp, air
+
 
 def get_count():
   delta = today - datetime.strptime(start_date, "%Y-%m-%d")
   return delta.days
 
-def get_birthday():
-  next = datetime.strptime(str(date.today().year) + "-" + birthday, "%Y-%m-%d")
-  if next < datetime.now():
-    next = next.replace(year=next.year + 1)
-  return (next - today).days
+
+def get_birthday(index):
+  if index == 1:
+    next = datetime.strptime(str(date.today().year) + "-" + yy_birthday, "%Y-%m-%d")
+    if next < datetime.now():
+      next = next.replace(year=next.year + 1)
+    return (next - today).days
+  if index == 2:
+    next = datetime.strptime(str(date.today().year) + "-" + pp_birthday, "%Y-%m-%d")
+    if next < datetime.now():
+      next = next.replace(year=next.year + 1)
+    return (next - today).days
 
 def get_words():
   words = requests.get("https://api.shadiao.pro/chp")
@@ -47,7 +61,18 @@ def get_random_color():
 client = WeChatClient(app_id, app_secret)
 
 wm = WeChatMessage(client)
-wea, temperature = get_weather()
-data = {"weather":{"value":wea},"temperature":{"value":temperature},"love_days":{"value":get_count()},"birthday_left":{"value":get_birthday()},"words":{"value":get_words(), "color":get_random_color()}}
+wea, wind, low_temp, high_temp, air = get_weather()
+
+data = {"weather":{"value": wea},
+        "wind":{"value": wind},
+        "air_Q":{"value": air},
+        "low_temperature":{"value": low_temp},
+        "high_temperature":{"value":high_temp},
+        "love_days":{"value":get_count()},
+        "yy_birthday_left":{"value":get_birthday(1)},
+        "pp_birthday_left":{"value":get_birthday(2)},
+        "words":{"value":get_words()}
+        }
+
 res = wm.send_template(user_id, template_id, data)
 print(res)
